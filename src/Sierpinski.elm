@@ -95,6 +95,27 @@ draw =
         )
 
 
+example : List Alphabet
+example =
+    sierpinski axiom 2
+
+
+symbolToInstruction : Alphabet -> ( Float, Float ) -> ( Float, Float )
+symbolToInstruction alphabet =
+    case alphabet of
+        SymF ->
+            drawForward
+
+        SymG ->
+            drawForward
+
+        SymPos ->
+            rotateLeft
+
+        SymNeg ->
+            rotateLeft
+
+
 drawForward : ( Float, Float ) -> ( Float, Float )
 drawForward ( x, y ) =
     ( x + segmentLength, y )
