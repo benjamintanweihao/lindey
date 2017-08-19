@@ -1,7 +1,10 @@
 module Sierpinski exposing (..)
 
+import Collage exposing (..)
+import Color exposing (..)
+import Element exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (rows, style)
+import Html.Attributes exposing (rows, style, readonly)
 import Keyboard
 
 
@@ -49,19 +52,76 @@ type Msg
 view : Model -> Html Msg
 view model =
     let
-        algaeText =
+        rendered =
             String.join "" <| List.map toText <| (sierpinski axiom model.generation)
     in
         div []
-            [ textarea
+            [ canvas |> toHtml
+            , textarea
                 [ style
                     [ ( "width", "100%" )
                     ]
-                , rows 100
+                , rows 30
+                , readonly True
                 ]
-                [ text algaeText ]
-            , text <| "Generation: " ++ (toString model.generation)
+                [ Html.text rendered ]
+            , Html.text <| "Generation: " ++ (toString model.generation)
             ]
+
+
+segmentLength : Float
+segmentLength =
+    10
+
+
+canvas : Element
+canvas =
+    collage 800 800 [ draw ]
+
+
+draw : Form
+draw =
+    traced defaultLine
+        (path
+            [ drawForward ( 0.0, 0.0 )
+            , rotateLeft <| drawForward ( 0.0, 0.0 )
+            , rotateLeft <| rotateLeft <| drawForward ( 0.0, 0.0 )
+            , rotateLeft <| rotateLeft <| rotateLeft <| drawForward ( 0.0, 0.0 )
+            , ( 0.0, 20 )
+            , rotateRight ( 0.0, 20 )
+            , rotateRight <| rotateRight ( 0.0, 20 )
+            , rotateRight <| rotateRight <| rotateRight ( 0.0, 20 )
+            ]
+        )
+
+
+drawForward : ( Float, Float ) -> ( Float, Float )
+drawForward ( x, y ) =
+    ( x + segmentLength, y )
+
+
+rotateLeft : ( Float, Float ) -> ( Float, Float )
+rotateLeft ( x, y ) =
+    let
+        newX =
+            -0.5 * x - (sqrt 3 / 2) * y
+
+        newY =
+            -0.5 * y + (sqrt 3 / 2) * x
+    in
+        ( newX, newY )
+
+
+rotateRight : ( Float, Float ) -> ( Float, Float )
+rotateRight ( x, y ) =
+    let
+        newX =
+            -0.5 * x + (sqrt 3 / 2) * y
+
+        newY =
+            -0.5 * y - (sqrt 3 / 2) * x
+    in
+        ( newX, newY )
 
 
 
