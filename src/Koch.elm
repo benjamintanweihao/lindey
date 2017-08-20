@@ -1,4 +1,4 @@
-module Dragon exposing (..)
+module Koch exposing (..)
 
 import Collage exposing (..)
 import Color exposing (..)
@@ -53,7 +53,7 @@ view : Model -> Html Msg
 view model =
     let
         alphabets =
-            dragon axiom model.generation
+            koch axiom model.generation
 
         rendered =
             String.join "" <| List.map toText <| alphabets
@@ -96,7 +96,7 @@ eval : List Alphabet -> Form
 eval alphabets =
     let
         angle =
-            degrees -90
+            degrees 90
 
         ( _, _, paths ) =
             List.foldl
@@ -117,9 +117,6 @@ eval alphabets =
 
                         SymNeg ->
                             ( pos, r - angle, paths )
-
-                        sym ->
-                            ( pos, r, paths )
                 )
                 ( initPos, initRotation, [] )
                 alphabets
@@ -182,13 +179,11 @@ subscriptions model =
 
 
 
--- Dragon
+-- Koch
 
 
 type Alphabet
-    = SymX
-    | SymY
-    | SymF
+    = SymF
     | SymPos
     | SymNeg
 
@@ -197,27 +192,24 @@ type alias Generation =
     Int
 
 
-dragon : List Alphabet -> Int -> List Alphabet
-dragon state generation =
+koch : List Alphabet -> Int -> List Alphabet
+koch state generation =
     if generation == 0 then
         state
     else
-        dragon (List.concatMap rule state) (generation - 1)
+        koch (List.concatMap rule state) (generation - 1)
 
 
 axiom : List Alphabet
 axiom =
-    [ SymF, SymX ]
+    [ SymF ]
 
 
 rule : Alphabet -> List Alphabet
 rule variable =
     case variable of
-        SymX ->
-            [ SymX, SymPos, SymY, SymF, SymPos ]
-
-        SymY ->
-            [ SymNeg, SymF, SymX, SymNeg, SymY ]
+        SymF ->
+            [ SymF, SymPos, SymF, SymNeg, SymF, SymNeg, SymF, SymPos, SymF ]
 
         sym ->
             [ sym ]
@@ -226,12 +218,6 @@ rule variable =
 toText : Alphabet -> String
 toText alphabet =
     case alphabet of
-        SymX ->
-            "X"
-
-        SymY ->
-            "Y"
-
         SymF ->
             "F"
 
