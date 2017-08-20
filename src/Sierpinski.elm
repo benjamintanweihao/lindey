@@ -52,107 +52,101 @@ type Msg
 view : Model -> Html Msg
 view model =
     let
+        alphabets =
+            sierpinski axiom model.generation
+
         rendered =
-            String.join "" <| List.map toText <| sierpinski axiom model.generation
+            String.join "" <| List.map toText <| alphabets
     in
-    div []
-        [ canvas model.generation |> toHtml
-        , textarea
-            [ style
-                [ ( "width", "100%" )
+        div []
+            [ canvas alphabets |> toHtml
+            , textarea
+                [ style
+                    [ ( "width", "100%" )
+                    ]
+                , rows 30
+                , readonly True
                 ]
-            , rows 30
-            , readonly True
+                [ Html.text rendered ]
+            , Html.text <| "Generation: " ++ toString model.generation
             ]
-            [ Html.text rendered ]
-        , Html.text <| "Generation: " ++ toString model.generation
-        ]
 
 
 segmentLength : Float
 segmentLength =
-    4
+    20
 
 
-canvas : Int -> Element
-canvas generation =
-    collage 800 800 [ drawPoints generation ]
+canvas : List Alphabet -> Element
+canvas alphabets =
+    collage 1000 1000 [ eval alphabets ]
 
 
-drawPoints : Int -> Form
-drawPoints generation =
-    traced defaultLine
-        (path <| computePoints generation)
+initPos : ( Float, Float )
+initPos =
+    ( 0, 0 )
 
 
-computePoints : Int -> List ( Float, Float )
-computePoints generation =
+initRotation : Float
+initRotation =
+    0
+
+
+eval : List Alphabet -> Form
+eval alphabets =
     let
-        coordsReversed =
-            List.foldr
-                (\alphabet acc ->
-                    let
-                        newCoord =
-                            symbolToInstruction alphabet (List.head acc |> Maybe.withDefault ( 0, 0 ))
-                    in
-                    newCoord :: acc
+        angle =
+            degrees -120
+
+        ( _, _, paths ) =
+            List.foldl
+                (\alphabet ( pos, r, paths ) ->
+                    case alphabet of
+                        SymF ->
+                            let
+                                endPos =
+                                    calcEndPos pos r
+
+                                newPath =
+                                    traced (solid black) <| segment pos endPos
+                            in
+                                ( endPos, r, newPath :: paths )
+
+                        SymG ->
+                            let
+                                endPos =
+                                    calcEndPos pos r
+
+                                newPath =
+                                    traced (solid black) <| segment pos endPos
+                            in
+                                ( endPos, r, newPath :: paths )
+
+                        SymPos ->
+                            ( pos, r + angle, paths )
+
+                        SymNeg ->
+                            ( pos, r - angle, paths )
                 )
-                [ ( 0, 0 ) ]
-                (sierpinski axiom generation)
+                ( initPos, initRotation, [] )
+                alphabets
     in
-    Debug.log "Coords"
-        (List.reverse
-            coordsReversed
-        )
+        paths |> group
 
 
-symbolToInstruction : Alphabet -> ( Float, Float ) -> ( Float, Float )
-symbolToInstruction alphabet =
-    case alphabet of
-        SymF ->
-            Debug.log "drawForward"
-                drawForward
-
-        SymG ->
-            Debug.log "drawForward"
-                drawForward
-
-        SymPos ->
-            Debug.log "rotateLeft"
-                rotateLeft
-
-        SymNeg ->
-            Debug.log "rotateRight"
-                rotateRight
-
-
-drawForward : ( Float, Float ) -> ( Float, Float )
-drawForward ( x, y ) =
-    ( x + segmentLength, y )
-
-
-rotateLeft : ( Float, Float ) -> ( Float, Float )
-rotateLeft ( x, y ) =
+calcEndPos : ( Float, Float ) -> Float -> ( Float, Float )
+calcEndPos ( x, y ) rotation =
     let
-        newX =
-            -0.5 * x - (sqrt 3 / 2) * y
+        segmentLength_ =
+            toFloat (round segmentLength)
 
-        newY =
-            -0.5 * y + (sqrt 3 / 2) * x
+        endX =
+            x + (segmentLength_ * cos rotation)
+
+        endY =
+            y + (segmentLength_ * sin rotation)
     in
-    ( newX, newY )
-
-
-rotateRight : ( Float, Float ) -> ( Float, Float )
-rotateRight ( x, y ) =
-    let
-        newX =
-            -0.5 * x + (sqrt 3 / 2) * y
-
-        newY =
-            -0.5 * y - (sqrt 3 / 2) * x
-    in
-    ( newX, newY )
+        ( endX, endY )
 
 
 
@@ -209,6 +203,14 @@ type alias Generation =
     Int
 
 
+sierpinski : List Alphabet -> Int -> List Alphabet
+sierpinski state generation =
+    if generation == 0 then
+        state
+    else
+        sierpinski (List.concatMap rule state) (generation - 1)
+
+
 axiom : List Alphabet
 axiom =
     [ SymF, SymNeg, SymG, SymNeg, SymG ]
@@ -223,16 +225,11 @@ rule variable =
         SymG ->
             [ SymG, SymG ]
 
-        _ ->
-            []
+        SymPos ->
+            [ SymPos ]
 
-
-sierpinski : List Alphabet -> Int -> List Alphabet
-sierpinski state generation =
-    if generation == 0 then
-        state
-    else
-        sierpinski (List.concatMap rule state) (generation - 1)
+        SymNeg ->
+            [ SymNeg ]
 
 
 toText : Alphabet -> String
