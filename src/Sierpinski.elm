@@ -4,7 +4,7 @@ import Collage exposing (..)
 import Color exposing (..)
 import Element exposing (..)
 import Html exposing (..)
-import Html.Attributes exposing (rows, style, readonly)
+import Html.Attributes exposing (readonly, rows, style)
 import Keyboard
 
 
@@ -53,67 +53,77 @@ view : Model -> Html Msg
 view model =
     let
         rendered =
-            String.join "" <| List.map toText <| (sierpinski axiom model.generation)
+            String.join "" <| List.map toText <| sierpinski axiom model.generation
     in
-        div []
-            [ canvas |> toHtml
-            , textarea
-                [ style
-                    [ ( "width", "100%" )
-                    ]
-                , rows 30
-                , readonly True
+    div []
+        [ canvas model.generation |> toHtml
+        , textarea
+            [ style
+                [ ( "width", "100%" )
                 ]
-                [ Html.text rendered ]
-            , Html.text <| "Generation: " ++ (toString model.generation)
+            , rows 30
+            , readonly True
             ]
+            [ Html.text rendered ]
+        , Html.text <| "Generation: " ++ toString model.generation
+        ]
 
 
 segmentLength : Float
 segmentLength =
-    10
+    4
 
 
-canvas : Element
-canvas =
-    collage 800 800 [ draw ]
+canvas : Int -> Element
+canvas generation =
+    collage 800 800 [ drawPoints generation ]
 
 
-draw : Form
-draw =
+drawPoints : Int -> Form
+drawPoints generation =
     traced defaultLine
-        (path
-            [ drawForward ( 0.0, 0.0 )
-            , rotateLeft <| drawForward ( 0.0, 0.0 )
-            , rotateLeft <| rotateLeft <| drawForward ( 0.0, 0.0 )
-            , rotateLeft <| rotateLeft <| rotateLeft <| drawForward ( 0.0, 0.0 )
-            , ( 0.0, 20 )
-            , rotateRight ( 0.0, 20 )
-            , rotateRight <| rotateRight ( 0.0, 20 )
-            , rotateRight <| rotateRight <| rotateRight ( 0.0, 20 )
-            ]
+        (path <| computePoints generation)
+
+
+computePoints : Int -> List ( Float, Float )
+computePoints generation =
+    let
+        coordsReversed =
+            List.foldr
+                (\alphabet acc ->
+                    let
+                        newCoord =
+                            symbolToInstruction alphabet (List.head acc |> Maybe.withDefault ( 0, 0 ))
+                    in
+                    newCoord :: acc
+                )
+                [ ( 0, 0 ) ]
+                (sierpinski axiom generation)
+    in
+    Debug.log "Coords"
+        (List.reverse
+            coordsReversed
         )
-
-
-example : List Alphabet
-example =
-    sierpinski axiom 2
 
 
 symbolToInstruction : Alphabet -> ( Float, Float ) -> ( Float, Float )
 symbolToInstruction alphabet =
     case alphabet of
         SymF ->
-            drawForward
+            Debug.log "drawForward"
+                drawForward
 
         SymG ->
-            drawForward
+            Debug.log "drawForward"
+                drawForward
 
         SymPos ->
-            rotateLeft
+            Debug.log "rotateLeft"
+                rotateLeft
 
         SymNeg ->
-            rotateLeft
+            Debug.log "rotateRight"
+                rotateRight
 
 
 drawForward : ( Float, Float ) -> ( Float, Float )
@@ -130,7 +140,7 @@ rotateLeft ( x, y ) =
         newY =
             -0.5 * y + (sqrt 3 / 2) * x
     in
-        ( newX, newY )
+    ( newX, newY )
 
 
 rotateRight : ( Float, Float ) -> ( Float, Float )
@@ -142,7 +152,7 @@ rotateRight ( x, y ) =
         newY =
             -0.5 * y - (sqrt 3 / 2) * x
     in
-        ( newX, newY )
+    ( newX, newY )
 
 
 
@@ -208,7 +218,7 @@ rule : Alphabet -> List Alphabet
 rule variable =
     case variable of
         SymF ->
-            [ SymF, SymNeg, SymG, SymPos, SymG, SymNeg, SymF ]
+            [ SymF, SymNeg, SymG, SymPos, SymF, SymPos, SymG, SymNeg, SymF ]
 
         SymG ->
             [ SymG, SymG ]
